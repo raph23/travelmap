@@ -12,7 +12,6 @@ export default function Stats({ visited }: { visited: Set<string> }) {
       <div className="bar" role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}>
         <div style={{ width: `${pct}%` }} />
       </div>
-      <small>Counts the 193 UN member states plus Vatican City and Palestine.</small>
     </section>
   )
 }
