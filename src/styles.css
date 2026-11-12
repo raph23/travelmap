@@ -7,7 +7,7 @@
     --visited: #ff8a3d; --visited-hover: #ffa468; --sea: #0e1a2a; --muted: #98a2b3; }
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, sans-serif; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 'DM Sans Variable', system-ui, sans-serif; }
 main { max-width: 1100px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
 header { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center; }
 h1 { margin: 0; font-size: 1.6rem; }
@@ -20,7 +20,6 @@ button { cursor: pointer; }
 .stats .big { font-size: 3rem; font-weight: 700; color: var(--visited); line-height: 1; }
 .bar { height: 10px; background: var(--land); border-radius: 5px; margin: 10px 0 6px; overflow: hidden; }
 .bar > div { height: 100%; background: var(--visited); transition: width .3s; }
-.stats small { color: var(--muted); }
 .map { position: relative; background: var(--sea); border-radius: 12px; overflow: hidden; }
 .map svg { width: 100%; height: auto; display: block; }
 .tooltip { position: absolute; left: 12px; bottom: 8px; font-size: .9rem; color: var(--muted); }
@@ -30,6 +29,6 @@ button { cursor: pointer; }
 .country.visited:hover { fill: var(--visited-hover); }
 .country.editable { cursor: pointer; }
 .list input[placeholder] { width: 100%; margin-bottom: 10px; }
-.list ul { list-style: none; margin: 0; padding: 0; columns: 220px; max-height: 360px; overflow: auto; }
+.list ul { list-style: none; margin: 0; padding: 0; columns: 220px; max-height: 70vh; overflow: auto; }
 .list label { display: flex; gap: 8px; align-items: center; padding: 2px 0; }
 @media (max-width: 600px) { .stats .big { font-size: 2.4rem; } }

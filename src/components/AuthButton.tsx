@@ -19,7 +19,7 @@ export default function AuthButton({ session }: { session: Session | null }) {
     e.preventDefault()
     const { error } = await supabase!.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: window.location.origin },
+      options: { emailRedirectTo: window.location.origin + '/edit' },
     })
     setMsg(error ? error.message : 'Check your email for the sign-in link.')
   }

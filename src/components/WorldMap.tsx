@@ -3,13 +3,7 @@ import { ComposableMap, Geographies, Geography, ZoomableGroup } from 'react-simp
 import atlasUrl from 'world-atlas/countries-50m.json?url'
 import { COUNTRY_BY_ID } from '../data/countries'
 
-interface Props {
-  visited: Set<string>
-  canEdit: boolean
-  onToggle: (id: string) => void
-}
-
-export default function WorldMap({ visited, canEdit, onToggle }: Props) {
+export default function WorldMap({ visited }: { visited: Set<string> }) {
   const [hover, setHover] = useState<string | null>(null)
 
   return (
@@ -20,17 +14,14 @@ export default function WorldMap({ visited, canEdit, onToggle }: Props) {
             {({ geographies }) =>
               geographies.map((geo) => {
                 const id = String(geo.id ?? '')
-                const country = COUNTRY_BY_ID.get(id)
-                const isVisited = visited.has(id)
-                const name = country?.name ?? (geo.properties?.name as string | undefined)
+                const name = COUNTRY_BY_ID.get(id)?.name ?? (geo.properties?.name as string | undefined)
                 return (
                   <Geography
                     key={geo.rsmKey}
                     geography={geo}
-                    className={`country${isVisited ? ' visited' : ''}${canEdit && country ? ' editable' : ''}`}
+                    className={`country${visited.has(id) ? ' visited' : ''}`}
                     onMouseEnter={() => setHover(name ?? null)}
                     onMouseLeave={() => setHover(null)}
-                    onClick={() => country && onToggle(id)}
                   />
                 )
               })
