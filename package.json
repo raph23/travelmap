@@ -1,0 +1,27 @@
+{
+  "name": "travelmap",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "gen:countries": "node scripts/generate-countries.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.119.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-simple-maps": "^5.0.5"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "world-atlas": "^2.0.2",
+    "world-countries": "^5.1.0"
+  }
+}

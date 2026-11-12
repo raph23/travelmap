@@ -1,0 +1,8 @@
+node_modules
+dist
+.env.local
+.env*.local
+.DS_Store
+.claude
+# Contains owner email
+supabase/migrations/0001_visited_countries.sql
