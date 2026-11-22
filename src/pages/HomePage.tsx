@@ -1,7 +1,7 @@
 import Stats from '../components/Stats'
 import WorldMap from '../components/WorldMap'
 import { useVisited } from '../hooks/useVisited'
-import { supabaseConfigured } from '../lib/supabase'
+import { neon } from '../lib/neon'
 
 export default function HomePage() {
   const { visited, loading, error } = useVisited(false)
@@ -10,9 +10,9 @@ export default function HomePage() {
       <header>
         <h1>Lena and Raph’s travel map</h1>
       </header>
-      {!supabaseConfigured && (
+      {!neon && (
         <p className="notice">
-          Supabase isn’t configured. Copy <code>.env.example</code> to <code>.env.local</code> and fill it in (see README).
+          Configure Neon to load visited countries. See the README.
         </p>
       )}
       {error && <p className="notice error">{error}</p>}

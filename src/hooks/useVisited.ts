@@ -1,40 +1,44 @@
-import { useCallback, useEffect, useState } from 'react'
-import type { Session } from '@supabase/supabase-js'
-import { supabase } from '../lib/supabase'
-import { COUNTRY_BY_ID, type Country } from '../data/countries'
-
-export function useSession() {
-  const [session, setSession] = useState<Session | null>(null)
-  useEffect(() => {
-    if (!supabase) return
-    supabase.auth.getSession().then(({ data }) => setSession(data.session))
-    const { data } = supabase.auth.onAuthStateChange((_e, s) => setSession(s))
-    return () => data.subscription.unsubscribe()
-  }, [])
-  return session
-}
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { neon } from '../lib/neon'
+import { COUNTRY_BY_ID } from '../data/countries'
 
 export function useVisited(canEdit: boolean) {
   const [visited, setVisited] = useState<Set<string>>(new Set())
-  const [loading, setLoading] = useState(Boolean(supabase))
+  const [loading, setLoading] = useState(Boolean(neon))
+  const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const pending = useRef(new Set<string>())
 
   useEffect(() => {
-    if (!supabase) return
-    supabase
-      .from('visited_countries')
-      .select('iso_numeric')
-      .then(({ data, error }) => {
-        if (error) setError(error.message)
-        else setVisited(new Set(data.map((r) => r.iso_numeric as string)))
-        setLoading(false)
-      })
+    if (!neon) return
+    const client = neon
+    let active = true
+
+    async function load() {
+      try {
+        const { data, error } = await client.from('visited_countries').select('iso_numeric')
+        if (error) throw new Error(error.message)
+        if (active) {
+          setVisited(new Set(data.map((row) => row.iso_numeric as string)))
+          setLoaded(true)
+        }
+      } catch (error) {
+        if (active) setError(error instanceof Error ? error.message : 'Could not load visited countries.')
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+
+    void load()
+    return () => { active = false }
   }, [])
 
+  const canToggle = canEdit && loaded
   const toggle = useCallback(
     async (id: string) => {
-      const country: Country | undefined = COUNTRY_BY_ID.get(id)
-      if (!supabase || !canEdit || !country) return
+      const country = COUNTRY_BY_ID.get(id)
+      if (!neon || !canToggle || !country || pending.current.has(id)) return
+      pending.current.add(id)
       const wasVisited = visited.has(id)
       const apply = (on: boolean) =>
         setVisited((prev) => {
@@ -44,18 +48,24 @@ export function useVisited(canEdit: boolean) {
           return next
         })
       apply(!wasVisited) // optimistic
-      const { error } = wasVisited
-        ? await supabase.from('visited_countries').delete().eq('iso_numeric', id)
-        : await supabase
-            .from('visited_countries')
-            .insert({ iso_numeric: id, iso_alpha3: country.alpha3, name: country.name })
-      if (error) {
+      try {
+        const { error } = wasVisited
+          ? await neon.from('visited_countries').delete().eq('iso_numeric', id)
+          : await neon.from('visited_countries').upsert(
+              { iso_numeric: id, iso_alpha3: country.alpha3, name: country.name },
+              { onConflict: 'iso_numeric', ignoreDuplicates: true },
+            )
+        if (error) throw new Error(error.message)
+        setError(null)
+      } catch (error) {
         apply(wasVisited) // roll back
-        setError(error.message)
-      } else setError(null)
+        setError(error instanceof Error ? error.message : 'Could not save the country.')
+      } finally {
+        pending.current.delete(id)
+      }
     },
-    [canEdit, visited],
+    [canToggle, visited],
   )
 
-  return { visited, loading, error, toggle }
+  return { visited, loading, error, canToggle, toggle }
 }
