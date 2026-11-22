@@ -1,22 +1,37 @@
 # Lena and Raph’s travel map
 
-React, Vite, and TypeScript map of visited countries, backed by Neon Postgres. Anyone can view the map and percentages for Raph, Elena, and trips together. The owner signs in at `/edit` with an email link to track visits for each group.
+React, Vite, and TypeScript map of visited countries, backed by Neon Postgres. Anyone can view the map and percentages for Raph, Elena, and trips together. Raph and Elena sign in at `/edit` with their own email links. Raph can edit every group. Elena can edit her individual visits.
 
 ## Set up Neon and run locally
 
 1. Create a Neon project. Open **Postgres database → Data API**, enable it with **Managed Better Auth**, and leave the broad public-schema grant unchecked. The migration grants the app roles access to its table.
 2. In **Settings → Better Auth**, enable **Magic Link** and temporarily allow new magic-link users. Turn off email/password signup and sign-in. TravelMap uses Neon's shared email sender. Dedicated SMTP is optional. Add the exact preview and production origins under **Domains**. Enable **Allow Localhost** during local setup.
 3. Copy `.env.example` to `.env.local`. Set `VITE_NEON_AUTH_URL` to the Auth base URL and `VITE_NEON_DATA_API_URL` to the Data API URL. Copy both HTTPS endpoints from the Neon console. Keep database connection strings and SMTP credentials out of `VITE_` variables.
-4. Run `npm ci` and `npm run dev`. Open `http://localhost:5173/edit`, send a sign-in link to the owner email, and open it. In **Better Auth → Users**, copy the new owner's user ID. Turn off new magic-link registrations. Add the ID as `VITE_NEON_EDITOR_ID` in `.env.local` and restart Vite. The editor ID is public configuration. Postgres enforces authorization independently of the UI.
+4. Run `npm ci` and `npm run dev`. Open `http://localhost:5173/edit`, send a sign-in link to the owner email, and open it. In **Better Auth → Users**, copy the new owner's user ID. Turn off new magic-link registrations. Set `NEON_EDITOR_ID` in your migration shell. Postgres uses that ID to authorize the owner.
 5. From the repository root, apply the schema using your direct database connection and the same owner ID. Keep the connection string in a private shell session or PostgreSQL service configuration.
 
    ```sh
    psql -X "$NEON_DB_URL" -v ON_ERROR_STOP=1 -v editor_id="$NEON_EDITOR_ID" \
      -f neon/migrations/0001_visited_countries.sql
    psql -X "$NEON_DB_URL" -v ON_ERROR_STOP=1 -f neon/migrations/0002_visit_groups.sql
+   psql -X "$NEON_DB_URL" -v ON_ERROR_STOP=1 -v editor_id="$NEON_EDITOR_ID" \
+     -f neon/migrations/0003_visit_editors.sql
    ```
 
 6. In Neon’s **Data API** tab, click **Refresh schema cache**. Open both pages locally. Run `npm run build` before deploying.
+
+## Add Elena’s editor account
+
+1. In **Better Auth → Create user**, create an app user with Elena’s email or look up her existing account. Copy the Neon user ID. Keep new magic-link registrations disabled.
+2. Set `NEON_ELENA_ID` in your migration shell and register that user ID in the private editor table.
+
+   ```sh
+   psql -X "$NEON_DB_URL" -v ON_ERROR_STOP=1 -v elena_id="$NEON_ELENA_ID" <<'SQL'
+   INSERT INTO travelmap_private.visit_editors (user_id, scope) VALUES (:'elena_id', 'elena');
+   SQL
+   ```
+
+3. Elena can request a fresh email link at `/edit`. Her individual visits are editable. Raph manages the shared trips.
 
 ## Copy the existing Supabase data
 
@@ -45,10 +60,10 @@ React, Vite, and TypeScript map of visited countries, backed by Neon Postgres. A
 
 ## Deploy and verify
 
-1. Set the three `VITE_NEON_` variables in Vercel for Preview. Build the preview and add its exact HTTPS origin under Neon's trusted domains. The SPA rewrite in `vercel.json` serves `/edit` on direct navigation and refresh.
+1. Set the two `VITE_NEON_` endpoint variables in Vercel for Preview. Build the preview and add its exact HTTPS origin under Neon's trusted domains. The SPA rewrite in `vercel.json` serves `/edit` on direct navigation and refresh.
 2. In a signed-out browser, verify the counts and map highlights for all three groups. After a Supabase migration, compare the Together view with the source. Repeat after the Neon compute goes idle. Verify that the owner's email link returns to `/edit`, the session survives a reload, and an individual visit and a shared trip persist with the right totals. Restore the original data after testing.
-3. Check that both a signed-out visitor and a signed-in non-owner can read the table but cannot change it through the Data API. Use a temporary non-owner test account when needed, with country edits blocked by the owner-ID policy. Confirm retained rows and the same count after denied writes. A filtered delete can succeed with zero rows changed.
-4. Set the three variables for Production and deploy to the existing domain. Repeat the map and owner sign-in checks on that domain before resuming edits. Turn off **Allow Localhost** for the production Neon branch when finished testing. Keep the previous Vercel deployment and Supabase backup for rollback. If the new site has accepted edits, reconcile them before rolling back to Supabase.
+3. Verify that signed-out visitors and accounts outside the editor table can read visits and cannot edit. Confirm Elena's account can save individual visits and that requests to change Raph's or shared visits are denied by Postgres.
+4. Set the endpoint variables for Production and deploy to the existing domain. Repeat the map and sign-in checks on that domain before resuming edits. Turn off **Allow Localhost** for the production Neon branch when finished testing. Keep the previous Vercel deployment and Supabase backup for rollback. If the new site has accepted edits, reconcile them before rolling back to Supabase.
 
 ## Map data
 

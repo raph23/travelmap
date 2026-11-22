@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { neon } from '../lib/neon'
 import { COUNTRY_BY_ID } from '../data/countries'
-import { changeVisit, NO_VISITS, type VisitGroup, type Visits } from '../data/visits'
+import { canEditVisit, changeVisit, NO_VISITS, type EditorScope, type VisitGroup, type Visits } from '../data/visits'
 
 type VisitedCountry = Visits & { iso_numeric: string }
 
-export function useVisited(canEdit: boolean) {
+export function useVisited(scope: EditorScope | null) {
   const [visits, setVisits] = useState<Map<string, Visits>>(new Map())
   const [loading, setLoading] = useState(Boolean(neon))
   const [loaded, setLoaded] = useState(false)
@@ -37,15 +37,15 @@ export function useVisited(canEdit: boolean) {
     return () => { active = false }
   }, [])
 
-  const canToggle = canEdit && loaded
+  const editableScope = loaded ? scope : null
   const setVisit = useCallback(
     async (id: string, group: VisitGroup, checked: boolean) => {
       const country = COUNTRY_BY_ID.get(id)
-      if (!neon || !canToggle || !country || saving.current.has(id)) return
+      const previous = visits.get(id) ?? NO_VISITS
+      if (!neon || !country || !canEditVisit(editableScope, group, previous) || saving.current.has(id)) return
       saving.current.add(id)
       setPending(new Set(saving.current))
 
-      const previous = visits.get(id) ?? NO_VISITS
       const apply = (flags: Visits) =>
         setVisits((current) => {
           const next = new Map(current)
@@ -74,8 +74,8 @@ export function useVisited(canEdit: boolean) {
         setPending(new Set(saving.current))
       }
     },
-    [canToggle, visits],
+    [editableScope, visits],
   )
 
-  return { visits, loading, loaded, error, canToggle, pending, setVisit }
+  return { visits, loading, loaded, error, editableScope, pending, setVisit }
 }

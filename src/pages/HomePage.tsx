@@ -7,7 +7,7 @@ import { neon } from '../lib/neon'
 
 export default function HomePage() {
   const [group, setGroup] = useState<VisitGroup>('together')
-  const { visits, loading, loaded, error } = useVisited(false)
+  const { visits, loading, loaded, error } = useVisited(null)
   const visibleCountries = new Set<string>()
   for (const [id, flags] of visits) {
     if (flags[group]) visibleCountries.add(id)

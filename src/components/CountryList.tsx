@@ -1,20 +1,21 @@
 import { useState } from 'react'
 import { COUNTRIES } from '../data/countries'
-import { VISIT_GROUPS, type VisitGroup, type Visits } from '../data/visits'
+import { canEditVisit, VISIT_GROUPS, type EditorScope, type VisitGroup, type Visits } from '../data/visits'
 
 interface Props {
   visits: ReadonlyMap<string, Visits>
-  canEdit: boolean
+  scope: EditorScope | null
   pending: ReadonlySet<string>
   onChange: (id: string, group: VisitGroup, checked: boolean) => void
 }
 
-export default function CountryList({ visits, canEdit, pending, onChange }: Props) {
+export default function CountryList({ visits, scope, pending, onChange }: Props) {
   const [q, setQ] = useState('')
   const matches = COUNTRIES.filter((country) => country.name.toLowerCase().includes(q.trim().toLowerCase()))
   return (
     <section className="list" aria-label="Countries">
-      {canEdit && <p>A trip together counts for both of you. Clearing Together keeps both individual visits.</p>}
+      {scope === 'owner' && <p>A trip together counts for both of you. Clearing Together keeps both individual visits.</p>}
+      {scope === 'elena' && <p>You can edit your individual visits. Raph manages the shared trips.</p>}
       <input type="search" aria-label="Search countries" placeholder="Search countries…" value={q} onChange={(e) => setQ(e.target.value)} />
       <div className="country-table">
         <table>
@@ -34,7 +35,7 @@ export default function CountryList({ visits, canEdit, pending, onChange }: Prop
                       type="checkbox"
                       aria-label={group === 'together' ? `Visited ${name} together` : `${label} visited ${name}`}
                       checked={visits.get(id)?.[group] ?? false}
-                      disabled={!canEdit || pending.has(id)}
+                      disabled={!canEditVisit(scope, group, visits.get(id)) || pending.has(id)}
                       onChange={(e) => onChange(id, group, e.currentTarget.checked)}
                     />
                   </td>
