@@ -1,17 +1,35 @@
 import { COUNTRIES } from '../data/countries'
+import { VISIT_GROUPS, type VisitGroup, type Visits } from '../data/visits'
 
-export default function Stats({ visited }: { visited: Set<string> }) {
-  const count = COUNTRIES.filter((c) => visited.has(c.id)).length
-  const pct = (count / COUNTRIES.length) * 100
+interface Props {
+  visits: ReadonlyMap<string, Visits>
+  activeGroup?: VisitGroup
+  onSelect?: (group: VisitGroup) => void
+}
+
+export default function Stats({ visits, activeGroup, onSelect }: Props) {
   return (
-    <section className="stats">
-      <div className="big">{pct.toFixed(1)}%</div>
-      <div>
-        <strong>{count}</strong> of {COUNTRIES.length} countries visited
-      </div>
-      <div className="bar" role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}>
-        <div style={{ width: `${pct}%` }} />
-      </div>
-    </section>
+    <div className="stats-grid" role="group" aria-label={onSelect ? 'Choose which visits to show on the map' : 'Travel progress'}>
+      {VISIT_GROUPS.map(({ id, label }) => {
+        const count = COUNTRIES.filter((country) => visits.get(country.id)?.[id]).length
+        const pct = (count / COUNTRIES.length) * 100
+        const summary = (
+          <>
+            <span className="stats-label">{label}</span>
+            <strong className="big">{pct.toFixed(1)}%</strong>
+            <span className="stats-count"><strong>{count}</strong> of {COUNTRIES.length} countries</span>
+            <span className="bar" aria-hidden="true"><span style={{ width: `${pct}%` }} /></span>
+          </>
+        )
+
+        return onSelect ? (
+          <button key={id} type="button" className="stats" data-group={id} aria-pressed={activeGroup === id} onClick={() => onSelect(id)}>
+            {summary}
+          </button>
+        ) : (
+          <div key={id} className="stats" data-group={id}>{summary}</div>
+        )
+      })}
+    </div>
   )
 }

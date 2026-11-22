@@ -28,7 +28,7 @@ export default function EditPage() {
 function Editor({ client }: { client: NeonClient }) {
   const { data: session, isPending, error: sessionError } = client.auth.useSession()
   const canEdit = Boolean(editorId && session?.user.id === editorId)
-  const { visited, loading, error, canToggle, toggle } = useVisited(canEdit)
+  const { visits, loading, loaded, error, canToggle, pending, setVisit } = useVisited(canEdit)
 
   return (
     <>
@@ -38,8 +38,8 @@ function Editor({ client }: { client: NeonClient }) {
       {session && !canEdit && <p className="notice">This account has read-only access.</p>}
       {error && <p className="notice error">{error}</p>}
       {loading && <p role="status">Loading…</p>}
-      <Stats visited={visited} />
-      <CountryList visited={visited} canEdit={canToggle} onToggle={toggle} />
+      {loaded && <Stats visits={visits} />}
+      <CountryList visits={visits} canEdit={canToggle} pending={pending} onChange={setVisit} />
     </>
   )
 }

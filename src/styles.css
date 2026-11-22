@@ -1,10 +1,10 @@
 :root {
   --bg: #f6f7f9; --fg: #1c2330; --card: #fff; --land: #d5dbe3; --land-hover: #b9c3d0;
-  --visited: #e8590c; --visited-hover: #c24a0a; --sea: #eaf2fb; --muted: #667085;
+  --together: #b5450a; --raph: #255d9b; --elena: #624795; --sea: #eaf2fb; --muted: #667085;
 }
 @media (prefers-color-scheme: dark) {
   :root { --bg: #11151c; --fg: #e8ecf2; --card: #1a2029; --land: #38424f; --land-hover: #4a5666;
-    --visited: #ff8a3d; --visited-hover: #ffa468; --sea: #0e1a2a; --muted: #98a2b3; }
+    --together: #ff8a3d; --raph: #81b9ff; --elena: #c5a7fb; --sea: #0e1a2a; --muted: #98a2b3; }
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 'DM Sans Variable', system-ui, sans-serif; }
@@ -16,19 +16,40 @@ input, button { font: inherit; padding: 6px 10px; border-radius: 6px; border: 1p
 button { cursor: pointer; }
 .notice { background: var(--card); padding: 10px 14px; border-radius: 8px; margin: 0; }
 .notice.error { border-left: 4px solid #d92d20; }
+[data-group="raph"] { --group-highlight: var(--raph); }
+[data-group="elena"] { --group-highlight: var(--elena); }
+[data-group="together"] { --group-highlight: var(--together); }
+.stats-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .stats, .list { background: var(--card); border-radius: 12px; padding: 16px; }
-.stats .big { font-size: 3rem; font-weight: 700; color: var(--visited); line-height: 1; }
-.bar { height: 10px; background: var(--land); border-radius: 5px; margin: 10px 0 6px; overflow: hidden; }
-.bar > div { height: 100%; background: var(--visited); transition: width .3s; }
+.stats { display: grid; gap: 6px; align-content: start; text-align: left; border: 2px solid transparent; }
+button.stats:hover { border-color: var(--land-hover); }
+button.stats[aria-pressed="true"] { border-color: var(--group-highlight); }
+.stats-label { font-weight: 700; }
+.stats .big { font-size: 3rem; color: var(--group-highlight); line-height: 1; }
+.stats-count { color: var(--muted); }
+.bar { height: 6px; background: var(--land); border-radius: 3px; margin-top: 4px; overflow: hidden; }
+.bar > span { display: block; height: 100%; background: var(--group-highlight); transition: width .3s; }
 .map { position: relative; background: var(--sea); border-radius: 12px; overflow: hidden; }
 .map svg { width: 100%; height: auto; display: block; }
 .tooltip { position: absolute; left: 12px; bottom: 8px; font-size: .9rem; color: var(--muted); }
 .country { fill: var(--land); stroke: var(--bg); stroke-width: .3; outline: none; transition: fill .15s; }
 .country:hover { fill: var(--land-hover); }
-.country.visited { fill: var(--visited); }
-.country.visited:hover { fill: var(--visited-hover); }
-.country.editable { cursor: pointer; }
-.list input[placeholder] { width: 100%; margin-bottom: 10px; }
-.list ul { list-style: none; margin: 0; padding: 0; columns: 220px; max-height: 70vh; overflow: auto; }
-.list label { display: flex; gap: 8px; align-items: center; padding: 2px 0; }
-@media (max-width: 600px) { .stats .big { font-size: 2.4rem; } }
+.country.visited { fill: var(--group-highlight); }
+.country.visited:hover { fill: color-mix(in srgb, var(--group-highlight), var(--fg) 18%); }
+.list > p { margin: 0 0 12px; color: var(--muted); }
+.list input[type="search"] { width: 100%; margin-bottom: 10px; }
+.country-table { max-height: 70vh; overflow: auto; }
+.country-table table { width: 100%; border-collapse: separate; border-spacing: 0; }
+.country-table th, .country-table td { padding: 8px 6px; border-bottom: 1px solid var(--land); text-align: center; }
+.country-table th:first-child { text-align: left; }
+.country-table tbody th { font-weight: 500; }
+.country-table thead th { position: sticky; top: 0; background: var(--card); }
+.country-table thead th[data-group] { color: var(--group-highlight); }
+.country-table input[type="checkbox"] { width: 18px; height: 18px; margin: 0; accent-color: var(--group-highlight); }
+@media (max-width: 600px) {
+  .stats-grid { gap: 6px; }
+  .stats { padding: 8px; }
+  .stats .big { font-size: clamp(1.25rem, 6vw, 2.4rem); }
+  .stats-count { font-size: .75rem; }
+  .country-table th, .country-table td { padding: 8px 4px; font-size: .875rem; }
+}

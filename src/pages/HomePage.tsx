@@ -1,10 +1,17 @@
+import { useState } from 'react'
 import Stats from '../components/Stats'
 import WorldMap from '../components/WorldMap'
+import type { VisitGroup } from '../data/visits'
 import { useVisited } from '../hooks/useVisited'
 import { neon } from '../lib/neon'
 
 export default function HomePage() {
-  const { visited, loading, error } = useVisited(false)
+  const [group, setGroup] = useState<VisitGroup>('together')
+  const { visits, loading, loaded, error } = useVisited(false)
+  const visibleCountries = new Set<string>()
+  for (const [id, flags] of visits) {
+    if (flags[group]) visibleCountries.add(id)
+  }
   return (
     <main>
       <header>
@@ -16,9 +23,9 @@ export default function HomePage() {
         </p>
       )}
       {error && <p className="notice error">{error}</p>}
-      <Stats visited={visited} />
-      <WorldMap visited={visited} />
-      {loading && <p>Loading…</p>}
+      {loaded && <Stats visits={visits} activeGroup={group} onSelect={setGroup} />}
+      <WorldMap visited={visibleCountries} group={group} />
+      {loading && <p role="status">Loading…</p>}
     </main>
   )
 }

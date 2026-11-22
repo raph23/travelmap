@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { neon } from '../lib/neon'
 import { COUNTRY_BY_ID } from '../data/countries'
+import { changeVisit, NO_VISITS, type VisitGroup, type Visits } from '../data/visits'
+
+type VisitedCountry = Visits & { iso_numeric: string }
 
 export function useVisited(canEdit: boolean) {
-  const [visited, setVisited] = useState<Set<string>>(new Set())
+  const [visits, setVisits] = useState<Map<string, Visits>>(new Map())
   const [loading, setLoading] = useState(Boolean(neon))
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const pending = useRef(new Set<string>())
+  const saving = useRef(new Set<string>())
+  const [pending, setPending] = useState<ReadonlySet<string>>(new Set())
 
   useEffect(() => {
     if (!neon) return
@@ -16,10 +20,10 @@ export function useVisited(canEdit: boolean) {
 
     async function load() {
       try {
-        const { data, error } = await client.from('visited_countries').select('iso_numeric')
+        const { data, error } = await client.from('visited_countries').select('iso_numeric, raph, elena, together')
         if (error) throw new Error(error.message)
         if (active) {
-          setVisited(new Set(data.map((row) => row.iso_numeric as string)))
+          setVisits(new Map((data as VisitedCountry[]).map(({ iso_numeric, ...flags }) => [iso_numeric, flags])))
           setLoaded(true)
         }
       } catch (error) {
@@ -34,38 +38,44 @@ export function useVisited(canEdit: boolean) {
   }, [])
 
   const canToggle = canEdit && loaded
-  const toggle = useCallback(
-    async (id: string) => {
+  const setVisit = useCallback(
+    async (id: string, group: VisitGroup, checked: boolean) => {
       const country = COUNTRY_BY_ID.get(id)
-      if (!neon || !canToggle || !country || pending.current.has(id)) return
-      pending.current.add(id)
-      const wasVisited = visited.has(id)
-      const apply = (on: boolean) =>
-        setVisited((prev) => {
-          const next = new Set(prev)
-          if (on) next.add(id)
+      if (!neon || !canToggle || !country || saving.current.has(id)) return
+      saving.current.add(id)
+      setPending(new Set(saving.current))
+
+      const previous = visits.get(id) ?? NO_VISITS
+      const apply = (flags: Visits) =>
+        setVisits((current) => {
+          const next = new Map(current)
+          if (flags.raph || flags.elena || flags.together) next.set(id, flags)
           else next.delete(id)
           return next
         })
-      apply(!wasVisited) // optimistic
+      apply(changeVisit(previous, group, checked))
       try {
-        const { error } = wasVisited
-          ? await neon.from('visited_countries').delete().eq('iso_numeric', id)
-          : await neon.from('visited_countries').upsert(
-              { iso_numeric: id, iso_alpha3: country.alpha3, name: country.name },
-              { onConflict: 'iso_numeric', ignoreDuplicates: true },
-            )
+        const { data, error } = await neon.rpc('set_country_visit', {
+          country_id: id,
+          country_alpha3: country.alpha3,
+          country_name: country.name,
+          visit_group: group,
+          checked,
+        })
         if (error) throw new Error(error.message)
+        if (!data) throw new Error('Could not save the country.')
+        apply(data as Visits)
         setError(null)
       } catch (error) {
-        apply(wasVisited) // roll back
+        apply(previous)
         setError(error instanceof Error ? error.message : 'Could not save the country.')
       } finally {
-        pending.current.delete(id)
+        saving.current.delete(id)
+        setPending(new Set(saving.current))
       }
     },
-    [canToggle, visited],
+    [canToggle, visits],
   )
 
-  return { visited, loading, error, canToggle, toggle }
+  return { visits, loading, loaded, error, canToggle, pending, setVisit }
 }
