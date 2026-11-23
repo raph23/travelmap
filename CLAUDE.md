@@ -1,6 +1,6 @@
 # Travel Map
 
-Lena and Raph's travel map highlights visited countries and shows the percentage of the world's countries visited. React + Vite + TypeScript, data in Neon, hosting on Vercel.
+Elena and Raph's travel map highlights visited countries and shows the percentage of the world's countries visited. React + Vite + TypeScript, data in Neon, hosting on Vercel.
 
 ## Commands
 - `npm run dev`: dev server at http://localhost:5173
