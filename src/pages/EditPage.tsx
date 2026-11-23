@@ -51,6 +51,9 @@ function Editor({ client }: { client: NeonClient }) {
         const { data, error, status } = await api.rpc('get_visit_editor_scope')
         if (window.location.hostname === 'travelmap-git-codex-visit-groups-khaos-works.vercel.app') {
           console.info('TravelMap editor scope check', JSON.stringify({ type: typeof data, data, status, code: error?.code }).slice(0, 240))
+          const diagnostic = await api.rpc('diagnose_visit_editor', { expected_user_id: id })
+          const original = await client.rpc('get_visit_editor_scope')
+          console.info('TravelMap editor identity check', JSON.stringify({ result: diagnostic.data, code: diagnostic.error?.code, original: original.data }).slice(0, 400))
         }
         if (error) throw new Error(error.message)
         const scope = data === 'owner' || data === 'elena' ? data : null
