@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import AuthButton from '../components/AuthButton'
 import CountryList from '../components/CountryList'
 import Stats from '../components/Stats'
 import { navigate } from '../App'
 import type { EditorScope } from '../data/visits'
 import { useVisited } from '../hooks/useVisited'
-import { neon, type NeonClient } from '../lib/neon'
+import { createEditorDataApi, neon, type NeonClient } from '../lib/neon'
 
 export default function EditPage() {
   return (
@@ -30,19 +30,25 @@ export default function EditPage() {
 function Editor({ client }: { client: NeonClient }) {
   const { data: session, isPending, error: sessionError } = client.auth.useSession()
   const userId = session?.user.id
+  const sessionToken = session?.session.token
+  const editorApi = useMemo(
+    () => userId ? createEditorDataApi(client, userId, sessionToken) : null,
+    [client, userId, sessionToken],
+  )
   const [access, setAccess] = useState<{ userId: string; scope: EditorScope | null; error?: string } | null>(null)
 
   useEffect(() => {
-    if (!userId) {
+    if (!userId || !editorApi) {
       setAccess(null)
       return
     }
 
     const id = userId
+    const api = editorApi
     let active = true
     async function loadAccess() {
       try {
-        const { data, error } = await client.rpc('get_visit_editor_scope')
+        const { data, error } = await api.rpc('get_visit_editor_scope')
         if (error) throw new Error(error.message)
         const scope = data === 'owner' || data === 'elena' ? data : null
         if (active) setAccess({ userId: id, scope })
@@ -53,10 +59,10 @@ function Editor({ client }: { client: NeonClient }) {
 
     void loadAccess()
     return () => { active = false }
-  }, [client, userId])
+  }, [editorApi, userId])
 
   const currentAccess = access?.userId === userId ? access : null
-  const { visits, loading, loaded, error, editableScope, pending, setVisit } = useVisited(currentAccess?.scope ?? null)
+  const { visits, loading, loaded, error, editableScope, pending, setVisit } = useVisited(currentAccess?.scope ?? null, editorApi)
 
   return (
     <>

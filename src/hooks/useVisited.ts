@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { neon } from '../lib/neon'
+import { neon, type EditorDataApi } from '../lib/neon'
 import { COUNTRY_BY_ID } from '../data/countries'
 import { canEditVisit, changeVisit, NO_VISITS, type EditorScope, type VisitGroup, type Visits } from '../data/visits'
 
 type VisitedCountry = Visits & { iso_numeric: string }
 
-export function useVisited(scope: EditorScope | null) {
+export function useVisited(scope: EditorScope | null, editorApi: EditorDataApi | null = null) {
   const [visits, setVisits] = useState<Map<string, Visits>>(new Map())
   const [loading, setLoading] = useState(Boolean(neon))
   const [loaded, setLoaded] = useState(false)
@@ -37,12 +37,12 @@ export function useVisited(scope: EditorScope | null) {
     return () => { active = false }
   }, [])
 
-  const editableScope = loaded ? scope : null
+  const editableScope = loaded && editorApi ? scope : null
   const setVisit = useCallback(
     async (id: string, group: VisitGroup, checked: boolean) => {
       const country = COUNTRY_BY_ID.get(id)
       const previous = visits.get(id) ?? NO_VISITS
-      if (!neon || !country || !canEditVisit(editableScope, group, previous) || saving.current.has(id)) return
+      if (!editorApi || !country || !canEditVisit(editableScope, group, previous) || saving.current.has(id)) return
       saving.current.add(id)
       setPending(new Set(saving.current))
 
@@ -55,7 +55,7 @@ export function useVisited(scope: EditorScope | null) {
         })
       apply(changeVisit(previous, group, checked))
       try {
-        const { data, error } = await neon.rpc('set_country_visit', {
+        const { data, error } = await editorApi.rpc('set_country_visit', {
           country_id: id,
           country_alpha3: country.alpha3,
           country_name: country.name,
@@ -74,7 +74,7 @@ export function useVisited(scope: EditorScope | null) {
         setPending(new Set(saving.current))
       }
     },
-    [editableScope, visits],
+    [editableScope, editorApi, visits],
   )
 
   return { visits, loading, loaded, error, editableScope, pending, setVisit }
