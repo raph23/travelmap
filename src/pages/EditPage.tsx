@@ -48,7 +48,10 @@ function Editor({ client }: { client: NeonClient }) {
     let active = true
     async function loadAccess() {
       try {
-        const { data, error } = await api.rpc('get_visit_editor_scope')
+        const { data, error, status } = await api.rpc('get_visit_editor_scope')
+        if (window.location.hostname === 'travelmap-git-codex-visit-groups-khaos-works.vercel.app') {
+          console.info('TravelMap editor scope check', JSON.stringify({ type: typeof data, data, status, code: error?.code }).slice(0, 240))
+        }
         if (error) throw new Error(error.message)
         const scope = data === 'owner' || data === 'elena' ? data : null
         if (active) setAccess({ userId: id, scope })
