@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import AuthButton from '../components/AuthButton'
 import CountryList from '../components/CountryList'
 import Stats from '../components/Stats'
 import { navigate } from '../App'
 import type { EditorScope } from '../data/visits'
 import { useVisited } from '../hooks/useVisited'
-import { createEditorDataApi, neon, type NeonClient } from '../lib/neon'
+import { getVisitEditorScope, neon, type NeonClient } from '../lib/neon'
 
 export default function EditPage() {
   return (
@@ -31,44 +31,34 @@ function Editor({ client }: { client: NeonClient }) {
   const { data: session, isPending, error: sessionError } = client.auth.useSession()
   const userId = session?.user.id
   const sessionToken = session?.session.token
-  const editorApi = useMemo(
-    () => userId ? createEditorDataApi(client, userId, sessionToken) : null,
-    [client, userId, sessionToken],
-  )
+  const [accessCheck, setAccessCheck] = useState(0)
   const [access, setAccess] = useState<{ userId: string; scope: EditorScope | null; error?: string } | null>(null)
 
   useEffect(() => {
-    if (!userId || !editorApi) {
+    if (!userId) {
       setAccess(null)
       return
     }
 
     const id = userId
-    const api = editorApi
-    let active = true
+    const check = new AbortController()
+    setAccess((current) => current?.userId === id && current.scope ? current : null)
+
     async function loadAccess() {
       try {
-        const { data, error, status } = await api.rpc('get_visit_editor_scope')
-        if (window.location.hostname === 'travelmap-git-codex-visit-groups-khaos-works.vercel.app') {
-          console.info('TravelMap editor scope check', JSON.stringify({ type: typeof data, data, status, code: error?.code }).slice(0, 240))
-          const diagnostic = await api.rpc('diagnose_visit_editor', { expected_user_id: id })
-          const original = await client.rpc('get_visit_editor_scope')
-          console.info('TravelMap editor identity check', JSON.stringify({ result: diagnostic.data, code: diagnostic.error?.code, original: original.data }).slice(0, 400))
-        }
-        if (error) throw new Error(error.message)
-        const scope = data === 'owner' || data === 'elena' ? data : null
-        if (active) setAccess({ userId: id, scope })
+        const scope = await getVisitEditorScope(client, check.signal)
+        if (!check.signal.aborted) setAccess({ userId: id, scope })
       } catch (error) {
-        if (active) setAccess({ userId: id, scope: null, error: error instanceof Error ? error.message : 'Could not check edit access.' })
+        if (!check.signal.aborted) setAccess({ userId: id, scope: null, error: error instanceof Error ? error.message : 'Could not check edit access.' })
       }
     }
 
     void loadAccess()
-    return () => { active = false }
-  }, [editorApi, userId])
+    return () => check.abort()
+  }, [client, userId, sessionToken, accessCheck])
 
   const currentAccess = access?.userId === userId ? access : null
-  const { visits, loading, loaded, error, editableScope, pending, setVisit } = useVisited(currentAccess?.scope ?? null, editorApi)
+  const { visits, loading, loaded, error, editableScope, pending, setVisit } = useVisited(currentAccess?.scope ?? null)
 
   return (
     <>
@@ -77,7 +67,12 @@ function Editor({ client }: { client: NeonClient }) {
       {!isPending && !session && <p className="notice">Sign in to add or remove countries.</p>}
       {userId && !currentAccess && <p role="status">Checking edit access…</p>}
       {currentAccess?.error && <p className="notice error">{currentAccess.error}</p>}
-      {currentAccess && !currentAccess.scope && !currentAccess.error && <p className="notice">This account has read-only access.</p>}
+      {currentAccess && !currentAccess.scope && !currentAccess.error && (
+        <p className="notice">
+          This account has read-only access.{' '}
+          <button type="button" onClick={() => setAccessCheck((count) => count + 1)}>Check access again</button>
+        </p>
+      )}
       {error && <p className="notice error">{error}</p>}
       {loading && <p role="status">Loading…</p>}
       {loaded && <Stats visits={visits} />}
