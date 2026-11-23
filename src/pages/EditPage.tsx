@@ -5,7 +5,7 @@ import Stats from '../components/Stats'
 import { navigate } from '../App'
 import type { EditorScope } from '../data/visits'
 import { useVisited } from '../hooks/useVisited'
-import { neon, type NeonClient } from '../lib/neon'
+import { getVisitEditorScope, neon, type NeonClient } from '../lib/neon'
 
 export default function EditPage() {
   return (
@@ -30,6 +30,8 @@ export default function EditPage() {
 function Editor({ client }: { client: NeonClient }) {
   const { data: session, isPending, error: sessionError } = client.auth.useSession()
   const userId = session?.user.id
+  const sessionToken = session?.session.token
+  const [accessCheck, setAccessCheck] = useState(0)
   const [access, setAccess] = useState<{ userId: string; scope: EditorScope | null; error?: string } | null>(null)
 
   useEffect(() => {
@@ -39,21 +41,21 @@ function Editor({ client }: { client: NeonClient }) {
     }
 
     const id = userId
-    let active = true
+    const check = new AbortController()
+    setAccess((current) => current?.userId === id && current.scope ? current : null)
+
     async function loadAccess() {
       try {
-        const { data, error } = await client.rpc('get_visit_editor_scope')
-        if (error) throw new Error(error.message)
-        const scope = data === 'owner' || data === 'elena' ? data : null
-        if (active) setAccess({ userId: id, scope })
+        const scope = await getVisitEditorScope(client, check.signal)
+        if (!check.signal.aborted) setAccess({ userId: id, scope })
       } catch (error) {
-        if (active) setAccess({ userId: id, scope: null, error: error instanceof Error ? error.message : 'Could not check edit access.' })
+        if (!check.signal.aborted) setAccess({ userId: id, scope: null, error: error instanceof Error ? error.message : 'Could not check edit access.' })
       }
     }
 
     void loadAccess()
-    return () => { active = false }
-  }, [client, userId])
+    return () => check.abort()
+  }, [client, userId, sessionToken, accessCheck])
 
   const currentAccess = access?.userId === userId ? access : null
   const { visits, loading, loaded, error, editableScope, pending, setVisit } = useVisited(currentAccess?.scope ?? null)
@@ -65,7 +67,12 @@ function Editor({ client }: { client: NeonClient }) {
       {!isPending && !session && <p className="notice">Sign in to add or remove countries.</p>}
       {userId && !currentAccess && <p role="status">Checking edit access…</p>}
       {currentAccess?.error && <p className="notice error">{currentAccess.error}</p>}
-      {currentAccess && !currentAccess.scope && !currentAccess.error && <p className="notice">This account has read-only access.</p>}
+      {currentAccess && !currentAccess.scope && !currentAccess.error && (
+        <p className="notice">
+          This account has read-only access.{' '}
+          <button type="button" onClick={() => setAccessCheck((count) => count + 1)}>Check access again</button>
+        </p>
+      )}
       {error && <p className="notice error">{error}</p>}
       {loading && <p role="status">Loading…</p>}
       {loaded && <Stats visits={visits} />}
