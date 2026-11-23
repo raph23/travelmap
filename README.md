@@ -1,4 +1,4 @@
-# Lena and Raph’s travel map
+# Elena and Raph’s travel map
 
 React, Vite, and TypeScript map of visited countries, backed by Neon Postgres. Anyone can view the map and percentages for Raph, Elena, and trips together. Raph and Elena sign in at `/edit` with their own email links. Raph can edit every group. Elena can edit her individual visits.
 

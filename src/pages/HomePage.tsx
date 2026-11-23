@@ -15,7 +15,7 @@ export default function HomePage() {
   return (
     <main>
       <header>
-        <h1>Lena and Raph’s travel map</h1>
+        <h1>Elena and Raph’s travel map</h1>
       </header>
       {!neon && (
         <p className="notice">
