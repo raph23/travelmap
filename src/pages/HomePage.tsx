@@ -17,15 +17,17 @@ export default function HomePage() {
       <header>
         <h1>Elena and Raph’s travel map</h1>
       </header>
-      {!neon && (
+      {neon ? (
+        <div className="home-stats">
+          <Stats visits={loaded ? visits : undefined} activeGroup={group} onSelect={setGroup} />
+          {error && <p className="notice error" role="alert">{error}</p>}
+        </div>
+      ) : (
         <p className="notice">
           Configure Neon to load visited countries. See the README.
         </p>
       )}
-      {error && <p className="notice error">{error}</p>}
-      {loaded && <Stats visits={visits} activeGroup={group} onSelect={setGroup} />}
-      <WorldMap visited={visibleCountries} group={group} />
-      {loading && <p role="status">Loading…</p>}
+      <WorldMap visited={visibleCountries} group={group} visitsLoading={loading} />
     </main>
   )
 }
