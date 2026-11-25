@@ -1,3 +1,20 @@
+/* Keep the fallback font for this page view if DM Sans arrives after the first paint. */
+@font-face {
+  font-family: 'DM Sans Variable';
+  font-style: normal;
+  font-weight: 100 1000;
+  font-display: optional;
+  src: url('@fontsource-variable/dm-sans/files/dm-sans-latin-wght-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+@font-face {
+  font-family: 'DM Sans Variable';
+  font-style: normal;
+  font-weight: 100 1000;
+  font-display: optional;
+  src: url('@fontsource-variable/dm-sans/files/dm-sans-latin-ext-wght-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
 :root {
   --bg: #f6f7f9; --fg: #1c2330; --card: #fff; --land: #d5dbe3; --land-hover: #b9c3d0;
   --together: #b5450a; --raph: #255d9b; --elena: #624795; --sea: #eaf2fb; --muted: #667085;
@@ -19,6 +36,10 @@ button { cursor: pointer; }
 [data-group="raph"] { --group-highlight: var(--raph); }
 [data-group="elena"] { --group-highlight: var(--elena); }
 [data-group="together"] { --group-highlight: var(--together); }
+.home-stats { display: grid; }
+.home-stats > * { grid-area: 1 / 1; }
+.home-stats:has(.error) .stats-grid { visibility: hidden; }
+.home-stats > .error { overflow-wrap: anywhere; }
 .stats-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .stats, .list { background: var(--card); border-radius: 12px; padding: 16px; }
 .stats { display: grid; gap: 6px; align-content: start; text-align: left; border: 2px solid transparent; }
@@ -26,11 +47,34 @@ button.stats:hover { border-color: var(--land-hover); }
 button.stats[aria-pressed="true"] { border-color: var(--group-highlight); }
 .stats-label { font-weight: 700; }
 .stats .big { font-size: 3rem; color: var(--group-highlight); line-height: 1; }
-.stats-count { color: var(--muted); }
+.stats-count { color: var(--muted); white-space: nowrap; }
 .bar { height: 6px; background: var(--land); border-radius: 3px; margin-top: 4px; overflow: hidden; }
 .bar > span { display: block; height: 100%; background: var(--group-highlight); transition: width .3s; }
-.map { position: relative; background: var(--sea); border-radius: 12px; overflow: hidden; }
-.map svg { width: 100%; height: auto; display: block; }
+.stats-grid[data-loading] :is(.big, .stats-count) { position: relative; color: transparent; }
+.stats-grid[data-loading] :is(.big, .stats-count)::before,
+.stats-grid[data-loading] .stats-count::after {
+  content: '';
+  position: absolute;
+  top: .2em;
+  left: 0;
+  width: min(4ch, 85%);
+  height: .6em;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--group-highlight) 16%, var(--land));
+  animation: skeleton-pulse 1.6s ease-in-out infinite alternate;
+}
+.stats-grid[data-loading] .stats-count::before { top: .45em; width: min(13ch, 85%); background: var(--land); }
+.stats-grid[data-loading] .stats-count::after { display: none; top: 1.95em; width: min(7ch, 65%); background: var(--land); }
+@keyframes skeleton-pulse { to { opacity: .55; } }
+@media (prefers-reduced-motion: reduce) {
+  .stats-grid[data-loading] :is(.big, .stats-count)::before,
+  .stats-grid[data-loading] .stats-count::after { animation: none; }
+}
+.map { position: relative; aspect-ratio: 4 / 3; background: var(--sea); border-radius: 12px; overflow: hidden; }
+.map svg { display: block; width: 100%; height: 100%; }
+.map-graticule { stroke: var(--land); stroke-width: 1; }
+.map-status { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
+.map-status > span { padding: 6px 12px; background: var(--card); border-radius: 6px; color: var(--muted); font-size: .875rem; }
 .tooltip { position: absolute; left: 12px; bottom: 8px; font-size: .9rem; color: var(--muted); }
 .country { fill: var(--land); stroke: var(--bg); stroke-width: .3; outline: none; transition: fill .15s; }
 .country:hover { fill: var(--land-hover); }
@@ -52,4 +96,8 @@ button.stats[aria-pressed="true"] { border-color: var(--group-highlight); }
   .stats .big { font-size: clamp(1.25rem, 6vw, 2.4rem); }
   .stats-count { font-size: .75rem; }
   .country-table th, .country-table td { padding: 8px 4px; font-size: .875rem; }
+}
+@media (max-width: 480px) {
+  .stats-count > span { display: block; }
+  .stats-grid[data-loading] .stats-count::after { display: block; }
 }
